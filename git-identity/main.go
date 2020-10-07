@@ -5,11 +5,10 @@ import (
 	"fmt"
 	"os"
 	"sort"
-	"strings"
-	"text/tabwriter"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/mbialon/gitutil/internal/identity"
+	"github.com/muesli/termenv"
 )
 
 func main() {
@@ -18,7 +17,12 @@ func main() {
 		fmt.Fprintf(os.Stderr, "ERROR: %v\n", err)
 		os.Exit(1)
 	}
-	p := tea.NewProgram(initialize(config), update, view)
+	profile, err := identity.Get()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "ERROR: %v\n", err)
+		os.Exit(1)
+	}
+	p := tea.NewProgram(initialize(config, profile), update, view)
 	if err := p.Start(); err != nil {
 		fmt.Fprintf(os.Stderr, "ERROR: %v\n", err)
 		os.Exit(1)
@@ -27,9 +31,11 @@ func main() {
 
 type Model struct {
 	Profiles []Profile
-	Cursor   int
-	Chosen   *Profile
-	Err      error
+	Current  *identity.Profile
+
+	Cursor int
+	Chosen *Profile
+	Err    error
 }
 
 type Profile struct {
@@ -37,7 +43,7 @@ type Profile struct {
 	*identity.Profile
 }
 
-func initialize(config *identity.Config) func() (tea.Model, tea.Cmd) {
+func initialize(config *identity.Config, current *identity.Profile) func() (tea.Model, tea.Cmd) {
 	return func() (tea.Model, tea.Cmd) {
 		var profiles []Profile
 		for k, v := range config.Profiles {
@@ -49,7 +55,10 @@ func initialize(config *identity.Config) func() (tea.Model, tea.Cmd) {
 		sort.Slice(profiles, func(i, j int) bool {
 			return profiles[i].Label < profiles[j].Label
 		})
-		return Model{Profiles: profiles}, nil
+		return Model{
+			Profiles: profiles,
+			Current:  current,
+		}, nil
 	}
 }
 
@@ -103,42 +112,46 @@ func view(model tea.Model) string {
 
 func profilesView(m Model) string {
 	var buf bytes.Buffer
-	buf.WriteString("Choose profile\n\n")
+	buf.WriteString(termenv.String("Current profile\n\n").Underline().String())
 
-	tw := tabwriter.NewWriter(&buf, 2, 2, 1, ' ', 0)
+	buf.WriteString(fmt.Sprintf("  %s\n", m.Current.Name))
+	buf.WriteString(fmt.Sprintf("  %s\n", m.Current.Email))
+	if m.Current.SignOff {
+		fmt.Fprintf(&buf, "  +signoff\n")
+	}
+	if m.Current.GPGSign {
+		fmt.Fprintf(&buf, "  +gpgsign\n")
+	}
+	buf.WriteString("\n")
+
+	buf.WriteString(termenv.String("Choose profile\n\n").Underline().String())
+
 	for i, profile := range m.Profiles {
-		cursor := " "
+		gutter := " "
 		if m.Cursor == i {
-			cursor = ">"
+			gutter = "│"
 		}
-
-		fmt.Fprintf(tw, "%s\t[%s]\t%s\t<%s>", cursor, profile.Label, profile.Name, profile.Email)
-		var options []string
+		fmt.Fprintf(&buf, "%s [%s]\n", gutter, profile.Label)
+		fmt.Fprintf(&buf, "%s %s\n", gutter, profile.Name)
+		fmt.Fprintf(&buf, "%s %s\n", gutter, profile.Email)
 		if profile.SignOff {
-			options = append(options, "+signoff")
+			fmt.Fprintf(&buf, "%s +signoff\n", gutter)
 		}
 		if profile.GPGSign {
-			options = append(options, "+gpg-sign")
+			fmt.Fprintf(&buf, "%s +gpgsign\n", gutter)
 		}
-		if len(options) > 0 {
-			fmt.Fprintf(tw, "\t%s", strings.Join(options, " "))
-		}
-		fmt.Fprintln(tw)
+		fmt.Fprintln(&buf)
 	}
-	tw.Flush()
 
 	buf.WriteString("\nPress q to quit.\n")
 	return buf.String()
 }
 
 func errorView(m Model) string {
-	var buf bytes.Buffer
-	buf.WriteString("ERROR: ")
-	buf.WriteString(m.Err.Error())
-	buf.WriteString("\n")
-	return buf.String()
+	s := fmt.Sprintf("ERROR: %s\n", m.Err.Error())
+	return termenv.String(s).Foreground(termenv.ANSIBrightRed).String()
 }
 
 func successView() string {
-	return "OK\n"
+	return termenv.String("OK").Foreground(termenv.ANSIGreen).String()
 }
