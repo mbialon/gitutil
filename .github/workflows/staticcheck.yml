@@ -1,0 +1,41 @@
+name: staticcheck
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - '*'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Set up Go
+      uses: actions/setup-go@v2
+      with:
+        go-version: 1.15
+
+    - name: Check out code
+      uses: actions/checkout@v2
+
+    - name: Cache Go modules
+      uses: actions/cache@v2
+      with:
+        path: ~/go/pkg/mod
+        key: ${{ runner.os }}-build-${{ hashFiles('**/go.sum') }}
+        restore-keys: |
+          ${{ runner.OS }}-build-${{ env.cache-name }}-
+          ${{ runner.OS }}-build-
+          ${{ runner.OS }}-
+
+    - name: Run go vet
+      run: go vet ./...
+
+    - name: Print staticcheck version
+      run: go run honnef.co/go/tools/cmd/staticcheck -version
+
+    - name: Run staticcheck
+      run: go run honnef.co/go/tools/cmd/staticcheck -- ./...
