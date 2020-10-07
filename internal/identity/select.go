@@ -1,10 +1,6 @@
 package identity
 
 import (
-	"os"
-	"os/exec"
-	"strings"
-
 	"github.com/mitchellh/go-homedir"
 	"github.com/pelletier/go-toml"
 )
@@ -21,7 +17,7 @@ type Profile struct {
 	IdentityKey string `toml:"identity_key"`
 }
 
-func Select() (*Profile, error) {
+func ReadFile() (*Config, error) {
 	fpath, err := homedir.Expand("~/.gitprofiles")
 	if err != nil {
 		return nil, err
@@ -34,18 +30,5 @@ func Select() (*Profile, error) {
 	if err := tree.Unmarshal(config); err != nil {
 		return nil, err
 	}
-	keys := make([]string, 0, len(config.Profiles))
-	for k := range config.Profiles {
-		keys = append(keys, k)
-	}
-	r := strings.NewReader(strings.Join(keys, "\n"))
-	cmd := exec.Command("fzf")
-	cmd.Stdin = r
-	cmd.Stderr = os.Stderr
-	out, err := cmd.Output()
-	if err != nil {
-		return nil, err
-	}
-	key := strings.TrimSpace(string(out))
-	return config.Profiles[key], nil
+	return config, nil
 }
