@@ -1,0 +1,64 @@
+before:
+  hooks:
+    - go mod download
+
+builds:
+  - id: git-identity
+    main: ./git-identity/main.go
+    binary: git-identity
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - windows
+      - darwin
+    goarch:
+      - amd64
+      - arm
+      - arm64
+    goarm:
+      - 6
+      - 7
+
+archives:
+  - id: git-identity
+    builds:
+      - git-identity
+    replacements:
+      darwin: Darwin
+      linux: Linux
+      windows: Windows
+      amd64: x86_64
+
+nfpms:
+  - id: git-identity
+    package_name: git-identity
+    builds:
+      - git-identity
+    vendor: Magralabs
+    maintainer: Marcin Białoń <marcin@bialon.net>
+    license: BSD 3-Clause
+    formats:
+      - apk
+      - deb
+      - rpm
+    dependencies:
+      - git
+
+checksum:
+  name_template: 'checksums.txt'
+
+snapshot:
+  name_template: "{{ .Tag }}-next"
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - '^docs:'
+      - '^test:'
+
+release:
+  ids:
+    - git-identity
+  prerelease: auto
