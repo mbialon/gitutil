@@ -114,8 +114,12 @@ func profilesView(m Model) string {
 	var buf bytes.Buffer
 	buf.WriteString(termenv.String("Current profile\n\n").Underline().String())
 
-	buf.WriteString(fmt.Sprintf("  %s\n", m.Current.Name))
-	buf.WriteString(fmt.Sprintf("  %s\n", m.Current.Email))
+	if m.Current.Name != "" {
+		buf.WriteString(fmt.Sprintf("  %s\n", m.Current.Name))
+	}
+	if m.Current.Email != "" {
+		buf.WriteString(fmt.Sprintf("  %s\n", m.Current.Email))
+	}
 	if m.Current.SignOff {
 		fmt.Fprintf(&buf, "  +signoff\n")
 	}
@@ -143,7 +147,7 @@ func profilesView(m Model) string {
 		fmt.Fprintln(&buf)
 	}
 
-	buf.WriteString("\nPress q to quit.\n")
+	buf.WriteString("Press q to quit.\n")
 	return buf.String()
 }
 
