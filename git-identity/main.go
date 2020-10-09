@@ -2,31 +2,67 @@ package main
 
 import (
 	"bytes"
+	"flag"
 	"fmt"
 	"os"
 	"sort"
+	"text/template"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/mbialon/gitutil/internal/identity"
 	"github.com/muesli/termenv"
 )
 
+var (
+	version = "dirty"
+	commit  = "dirty"
+	date    = "dirty"
+	builtBy = "dirty"
+)
+
+var versionTemplate = template.Must(template.New("").Parse(`Version:  {{.Version}}
+Commit:   {{.Commit}}
+Date:     {{.Date}}
+Built by: {{.BuiltBy}}
+`))
+
 func main() {
-	config, err := identity.ReadFile()
-	if err != nil {
+	if err := run(os.Args[1:]); err != nil {
 		fmt.Fprintf(os.Stderr, "ERROR: %v\n", err)
 		os.Exit(1)
+	}
+}
+
+func run(args []string) error {
+	fs := flag.NewFlagSet("git-identity", flag.ExitOnError)
+	var (
+		versionFlag = fs.Bool("version", false, "Print version information")
+	)
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+
+	if *versionFlag {
+		return versionTemplate.Execute(os.Stdout, struct {
+			Version, Commit, Date, BuiltBy string
+		}{
+			Version: version,
+			Commit:  commit,
+			Date:    date,
+			BuiltBy: builtBy,
+		})
+	}
+
+	config, err := identity.ReadFile()
+	if err != nil {
+		return err
 	}
 	profile, err := identity.Get()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "ERROR: %v\n", err)
-		os.Exit(1)
+		return err
 	}
 	p := tea.NewProgram(initialize(config, profile), update, view)
-	if err := p.Start(); err != nil {
-		fmt.Fprintf(os.Stderr, "ERROR: %v\n", err)
-		os.Exit(1)
-	}
+	return p.Start()
 }
 
 type Model struct {
