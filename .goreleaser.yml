@@ -24,11 +24,6 @@ archives:
   - id: git-identity
     builds:
       - git-identity
-    replacements:
-      darwin: Darwin
-      linux: Linux
-      windows: Windows
-      amd64: x86_64
 
 nfpms:
   - id: git-identity
