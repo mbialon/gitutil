@@ -35,12 +35,10 @@ func (c *Config) SignOff() bool {
 }
 
 func (c *Config) parseBool(s string) bool {
-	if c.err != nil {
-		return false
-	}
 	v, err := strconv.ParseBool(s)
 	if err != nil {
 		c.err = fmt.Errorf("parse %s: %w", s, err)
+		return false
 	}
 	return v
 }
@@ -66,17 +64,12 @@ func (c *Config) Err() error {
 }
 
 func (c *Config) get(key string) string {
-	if c.err != nil {
-		return ""
-	}
 	cmd := exec.Command("git", "config", key)
 	cmd.Dir = ""
-	b, err := cmd.Output()
-	if err != nil {
-		c.err = fmt.Errorf("get %s: %w", key, err)
-		return ""
+	if b, err := cmd.Output(); err == nil {
+		return string(bytes.TrimSpace(b))
 	}
-	return string(bytes.TrimSpace(b))
+	return ""
 }
 
 func (c *Config) set(key, val string) {
