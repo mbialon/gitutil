@@ -61,7 +61,21 @@ func run(args []string) error {
 	if err != nil {
 		return err
 	}
-	p := tea.NewProgram(initialize(config, profile), update, view)
+	var profiles []Profile
+	for k, v := range config.Profiles {
+		profiles = append(profiles, Profile{
+			Label:   k,
+			Profile: v,
+		})
+	}
+	sort.Slice(profiles, func(i, j int) bool {
+		return profiles[i].Label < profiles[j].Label
+	})
+	model := Model{
+		Profiles: profiles,
+		Current:  profile,
+	}
+	p := tea.NewProgram(model)
 	return p.Start()
 }
 
@@ -79,28 +93,15 @@ type Profile struct {
 	*identity.Profile
 }
 
-func initialize(config *identity.Config, current *identity.Profile) func() (tea.Model, tea.Cmd) {
-	return func() (tea.Model, tea.Cmd) {
-		var profiles []Profile
-		for k, v := range config.Profiles {
-			profiles = append(profiles, Profile{
-				Label:   k,
-				Profile: v,
-			})
-		}
-		sort.Slice(profiles, func(i, j int) bool {
-			return profiles[i].Label < profiles[j].Label
-		})
-		return Model{
-			Profiles: profiles,
-			Current:  current,
-		}, nil
-	}
+type setMsg struct {
+	err error
 }
 
-func update(msg tea.Msg, model tea.Model) (tea.Model, tea.Cmd) {
-	m, _ := model.(Model)
+func (m Model) Init() tea.Cmd {
+	return nil
+}
 
+func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch msg.String() {
@@ -130,13 +131,7 @@ func update(msg tea.Msg, model tea.Model) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-type setMsg struct {
-	err error
-}
-
-func view(model tea.Model) string {
-	m, _ := model.(Model)
-
+func (m Model) View() string {
 	if m.Chosen == nil {
 		return profilesView(m)
 	}
