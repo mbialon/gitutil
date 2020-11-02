@@ -115,6 +115,12 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if m.Cursor < len(m.Profiles)-1 {
 				m.Cursor++
 			}
+		case "s":
+			p := &m.Profiles[m.Cursor]
+			p.SignOff = !p.SignOff
+		case "S":
+			p := &m.Profiles[m.Cursor]
+			p.GPGSign = !p.GPGSign
 		case "enter":
 			m.Chosen = &m.Profiles[m.Cursor]
 			return m, func() tea.Msg {
