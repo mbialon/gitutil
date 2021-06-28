@@ -1,5 +1,5 @@
-github.com/charmbracelet/bubbletea v0.14.0 h1:SBbtRPkZ/wGYyTAn2zrBERes/nwzxZR5QdJ5nvczmFw=
-github.com/charmbracelet/bubbletea v0.14.0/go.mod h1:b5lOf5mLjMg1tRn1HVla54guZB+jvsyV0yYAQja95zE=
+github.com/charmbracelet/bubbletea v0.14.1 h1:pD/bM5LBEH/nDo7nKcgNUgi4uRHQhpWTIHZbG5vuSlc=
+github.com/charmbracelet/bubbletea v0.14.1/go.mod h1:b5lOf5mLjMg1tRn1HVla54guZB+jvsyV0yYAQja95zE=
 github.com/containerd/console v1.0.1 h1:u7SFAJyRqWcG6ogaMAx3KjSTy1e3hT9QxqX7Jco7dRc=
 github.com/containerd/console v1.0.1/go.mod h1:XUsP6YE/mKtz6bxc+I8UiKKTP04qjQL4qcS3XoQ5xkw=
 github.com/lucasb-eyer/go-colorful v1.2.0 h1:1nnpGOrhyZZuNyfu1QjKiUICQ74+3FNCN69Aj6K7nkY=
