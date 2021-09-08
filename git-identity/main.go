@@ -8,6 +8,8 @@ import (
 	"sort"
 	"text/template"
 
+	"github.com/charmbracelet/bubbles/help"
+	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/mbialon/gitutil/internal/identity"
 	"github.com/muesli/termenv"
@@ -72,6 +74,9 @@ func run(args []string) error {
 		return profiles[i].Label < profiles[j].Label
 	})
 	model := Model{
+		keys: keys,
+		help: help.NewModel(),
+
 		Profiles: profiles,
 		Current:  profile,
 	}
@@ -79,7 +84,62 @@ func run(args []string) error {
 	return p.Start()
 }
 
+type keyMap struct {
+	Up      key.Binding
+	Down    key.Binding
+	SignOff key.Binding
+	GPGSign key.Binding
+	Enter   key.Binding
+	Help    key.Binding
+	Quit    key.Binding
+}
+
+func (k keyMap) ShortHelp() []key.Binding {
+	return []key.Binding{k.Help, k.Quit}
+}
+
+func (k keyMap) FullHelp() [][]key.Binding {
+	return [][]key.Binding{
+		{k.Up, k.Down, k.SignOff, k.GPGSign, k.Enter},
+		{k.Help, k.Quit},
+	}
+}
+
+var keys = keyMap{
+	Up: key.NewBinding(
+		key.WithKeys("up", "k"),
+		key.WithHelp("^/k", "move up"),
+	),
+	Down: key.NewBinding(
+		key.WithKeys("down", "j"),
+		key.WithHelp("v/j", "move down"),
+	),
+	SignOff: key.NewBinding(
+		key.WithKeys("s"),
+		key.WithHelp("s", "toggle sign off"),
+	),
+	GPGSign: key.NewBinding(
+		key.WithKeys("shift+s"),
+		key.WithHelp("S", "toggle gpg signing"),
+	),
+	Enter: key.NewBinding(
+		key.WithKeys("enter"),
+		key.WithHelp("enter", "select identity"),
+	),
+	Help: key.NewBinding(
+		key.WithKeys("?"),
+		key.WithHelp("?", "toggle help"),
+	),
+	Quit: key.NewBinding(
+		key.WithKeys("q", "esc", "ctrl+c"),
+		key.WithHelp("q", "quit"),
+	),
+}
+
 type Model struct {
+	keys keyMap
+	help help.Model
+
 	Profiles []Profile
 	Current  *identity.Profile
 
@@ -103,30 +163,34 @@ func (m Model) Init() tea.Cmd {
 
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
+	case tea.WindowSizeMsg:
+		m.help.Width = msg.Width
 	case tea.KeyMsg:
-		switch msg.String() {
-		case "ctrl+c", "q":
-			return m, tea.Quit
-		case "up", "k":
+		switch {
+		case key.Matches(msg, m.keys.Up):
 			if m.Cursor > 0 {
 				m.Cursor--
 			}
-		case "down", "j":
+		case key.Matches(msg, m.keys.Down):
 			if m.Cursor < len(m.Profiles)-1 {
 				m.Cursor++
 			}
-		case "s":
+		case key.Matches(msg, m.keys.SignOff):
 			p := &m.Profiles[m.Cursor]
 			p.SignOff = !p.SignOff
-		case "S":
+		case key.Matches(msg, m.keys.GPGSign):
 			p := &m.Profiles[m.Cursor]
 			p.GPGSign = !p.GPGSign
-		case "enter":
+		case key.Matches(msg, m.keys.Enter):
 			m.Chosen = &m.Profiles[m.Cursor]
 			return m, func() tea.Msg {
 				err := identity.Set(m.Chosen.Profile)
 				return setMsg{err}
 			}
+		case key.Matches(msg, m.keys.Help):
+			m.help.ShowAll = !m.help.ShowAll
+		case key.Matches(msg, m.keys.Quit):
+			return m, tea.Quit
 		}
 	case setMsg:
 		if msg.err != nil {
@@ -138,13 +202,17 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m Model) View() string {
-	if m.Chosen == nil {
-		return profilesView(m)
+	var view string
+	switch {
+	case m.Chosen == nil:
+		view = profilesView(m)
+	case m.Err != nil:
+		view = errorView(m)
+	default:
+		view = successView()
 	}
-	if m.Err != nil {
-		return errorView(m)
-	}
-	return successView()
+	helpView := m.help.View(m.keys)
+	return view + helpView
 }
 
 func profilesView(m Model) string {
@@ -184,7 +252,6 @@ func profilesView(m Model) string {
 		fmt.Fprintln(&buf)
 	}
 
-	buf.WriteString("Press q to quit.\n")
 	return buf.String()
 }
 
