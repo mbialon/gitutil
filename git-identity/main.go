@@ -119,7 +119,7 @@ var keys = keyMap{
 		key.WithHelp("s", "toggle sign off"),
 	),
 	GPGSign: key.NewBinding(
-		key.WithKeys("shift+s"),
+		key.WithKeys("S"),
 		key.WithHelp("S", "toggle gpg signing"),
 	),
 	Enter: key.NewBinding(
