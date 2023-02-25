@@ -75,13 +75,14 @@ func run(args []string) error {
 	})
 	model := Model{
 		keys: keys,
-		help: help.NewModel(),
+		help: help.New(),
 
 		Profiles: profiles,
 		Current:  profile,
 	}
 	p := tea.NewProgram(model)
-	return p.Start()
+	_, err = p.Run()
+	return err
 }
 
 type keyMap struct {
